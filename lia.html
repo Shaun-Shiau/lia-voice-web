@@ -5,14 +5,50 @@
   <title>莉亞 GPT 測試對話</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #fff5f8; }
-    h1 { color: #ba68c8; }
-    #chat { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
-    .user { text-align: right; color: #6a1b9a; margin: 5px 0; }
-    .lia { text-align: left; color: #4e342e; margin: 5px 0; }
-    #inputBox { width: 100%; padding: 8px; }
-    button { padding: 10px 20px; background: #ab47bc; color: white; border: none; border-radius: 8px; }
-    button:hover { background: #8e24aa; }
+    body {
+      font-family: "微軟正黑體", sans-serif;
+      background: #fff6f9;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      color: #c564d8;
+    }
+    #chat {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      height: 400px;
+      overflow-y: scroll;
+      background: white;
+    }
+    .user {
+      color: #6a1b9a;
+      text-align: right;
+      margin: 5px 0;
+    }
+    .lia {
+      color: #ad1457;
+      text-align: left;
+      margin: 5px 0;
+    }
+    #inputBox {
+      width: 80%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    #sendBtn {
+      background-color: #c564d8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin-left: 10px;
+      border-radius: 6px;
+    }
+    #sendBtn:hover {
+      background-color: #a34dbd;
+    }
   </style>
 </head>
 <body>
@@ -22,62 +58,69 @@
   <button id="sendBtn">送出</button>
 
   <script>
-    const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // ← 替換成你的完整金鑰
-    const openAiProjectId = 'proj_U5D2Bv16xba5yQVd9U9wd2Uy';
-
     const chatBox = document.getElementById('chat');
     const inputBox = document.getElementById('inputBox');
     const sendBtn = document.getElementById('sendBtn');
-    let conversation = [];
 
-    function appendMessage(role, text) {
-      const p = document.createElement('p');
-      p.className = role;
-      p.innerText = text;
-      chatBox.appendChild(p);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    const apiKey = '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';
+    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
-    async function sendToChatGPT(text) {
-      conversation.push({ role: 'user', content: text });
-      appendMessage('user', text);
+    async function sendMessage() {
+      const userMessage = inputBox.value.trim();
+      if (!userMessage) return;
+
+      // 顯示使用者訊息
+      const userDiv = document.createElement('div');
+      userDiv.className = 'user';
+      userDiv.textContent = userMessage;
+      chatBox.appendChild(userDiv);
+
+      inputBox.value = '';
 
       try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openAiKey}`,
-            'OpenAI-Project': openAiProjectId
+            'HTTP-Referer': 'https://shaun-shiau.github.io/',
+            'X-Title': 'Lia Voice Web'
           },
           body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: conversation
+            model: 'openai/gpt-3.5-turbo',
+            messages: [{ role: 'user', content: userMessage }]
           })
         });
 
-        const data = await res.json();
-        if (data.choices && data.choices.length > 0) {
-          const reply = data.choices[0].message.content;
-          conversation.push({ role: 'assistant', content: reply });
-          appendMessage('lia', reply);
-        } else {
-          appendMessage('lia', '⚠️ 無法取得回應');
-          console.error('API 錯誤回應：', data);
-        }
+        const data = await response.json();
 
+        if (data.choices && data.choices[0]) {
+          const reply = data.choices[0].message.content;
+          const liaDiv = document.createElement('div');
+          liaDiv.className = 'lia';
+          liaDiv.textContent = reply;
+          chatBox.appendChild(liaDiv);
+        } else {
+          showError('⚠️ 無法取得回應（無 choices）');
+        }
       } catch (error) {
-        console.error('API 呼叫錯誤：', error);
-        appendMessage('lia', '⚠️ 無法取得 ChatGPT 回覆，請確認金鑰是否有效或 API 是否連線正常。');
+        showError('⚠️ 發生錯誤：' + error.message);
       }
+
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    sendBtn.addEventListener('click', () => {
-      const message = inputBox.value.trim();
-      if (message) {
-        sendToChatGPT(message);
-        inputBox.value = '';
-      }
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'lia';
+      errorDiv.style.color = 'orange';
+      errorDiv.textContent = message;
+      chatBox.appendChild(errorDiv);
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputBox.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
     });
   </script>
 </body>
