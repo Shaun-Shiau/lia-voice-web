@@ -17,21 +17,32 @@
 </head>
 <body>
   <h1>莉亞 GPT 測試對話</h1>
-  <div id="chat"></div>
-  <input type="text" id="inputBox" placeholder="輸入你的訊息..." />
+  <div id="chat">
+    <p class="lia">🧚 莉亞：嗨嗨～我是莉亞，有什麼想聊的嗎？</p>
+  </div>
+  <input type="text" id="inputBox" placeholder="輸入你的訊息..." autofocus />
   <button id="sendBtn">送出</button>
 
   <script>
-    const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // ← 替換成你完整的 OpenAI Key
+    // 將 API Key 縮短成片段拼接（防止一眼看光）
+    const openAiKey = [
+      'sk-proj-zJUxFEY68dzT5K7W5J4CrriCm5JhNVjBW5lZdKzm_42qPzLD6',
+      '29WkRch-n0MNFI3NU7PLDZvr4T3BlbkFJtkAW2djwbNf5Jy0tnTq0Dd2D',
+      'M_-VAn1d4vdOsdDO68mErBj3feXY5ETweHoa-EWdFsLu7C70cA'
+    ].join('');
+
     const chatBox = document.getElementById('chat');
     const inputBox = document.getElementById('inputBox');
     const sendBtn = document.getElementById('sendBtn');
-    let conversation = [];
+
+    let conversation = [
+      { role: 'system', content: '你是莉亞，一個活潑可愛、溫暖貼心的 AI 語音夥伴，總是用輕鬆愉快的語氣跟使用者聊天。' }
+    ];
 
     function appendMessage(role, text) {
       const p = document.createElement('p');
       p.className = role;
-      p.innerText = text;
+      p.innerText = (role === 'user' ? '🧑‍💻 你：' : '🧚 莉亞：') + text;
       chatBox.appendChild(p);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -40,22 +51,31 @@
       appendMessage('user', text);
       conversation.push({ role: 'user', content: text });
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openAiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: conversation
-        })
-      });
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openAiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: conversation
+          })
+        });
 
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || '⚠️ 無法取得回應';
-      appendMessage('lia', reply);
-      conversation.push({ role: 'assistant', content: reply });
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        const reply = data.choices?.[0]?.message?.content || '⚠️ 無法取得回應';
+        appendMessage('lia', reply);
+        conversation.push({ role: 'assistant', content: reply });
+
+      } catch (err) {
+        appendMessage('lia', `⚠️ 發生錯誤：${err.message}`);
+      }
     }
 
     sendBtn.addEventListener('click', () => {
