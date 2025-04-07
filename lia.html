@@ -1,46 +1,32 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>莉亞語音助手（語音播放測試）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>莉亞 GPT 測試版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #fff5fa; color: #4e342e; }
+    body { font-family: sans-serif; background: #fffafc; padding: 20px; }
     h1 { color: #ba68c8; }
-    #chat { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
+    #chat { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
     .user { text-align: right; color: #6a1b9a; margin: 5px 0; }
     .lia { text-align: left; color: #4e342e; margin: 5px 0; }
-    input, button {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin-right: 5px;
-    }
-    input {
-      width: 70%;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #ab47bc;
-      color: white;
-    }
-    button:hover {
-      background: #8e24aa;
-    }
+    #inputBox { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; }
+    button { padding: 10px 20px; background: #ab47bc; color: white; border: none; border-radius: 8px; }
+    button:hover { background: #8e24aa; }
   </style>
 </head>
 <body>
-  <h1>莉亞語音助手</h1>
+  <h1>莉亞 GPT 測試對話</h1>
   <div id="chat"></div>
-  <input type="text" id="textInput" placeholder="輸入想讓莉亞說的話">
-  <button onclick="sendMessage()">播放語音</button>
+  <input type="text" id="inputBox" placeholder="輸入你的訊息..." />
+  <button id="sendBtn">送出</button>
 
   <script>
-    const elevenKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af';
-    const voiceId = 'EXAVITQu4vr4xnSDxMaL'; // Bella ❤️
-
+    const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // ← 替換成你完整的 OpenAI Key
     const chatBox = document.getElementById('chat');
-    const textInput = document.getElementById('textInput');
+    const inputBox = document.getElementById('inputBox');
+    const sendBtn = document.getElementById('sendBtn');
+    let conversation = [];
 
     function appendMessage(role, text) {
       const p = document.createElement('p');
@@ -50,40 +36,41 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    async function speak(text) {
-      appendMessage('lia', text);
-      try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'xi-api-key': elevenKey,
-            'accept': 'audio/mpeg'
-          },
-          body: JSON.stringify({
-            text: text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: { stability: 0.4, similarity_boost: 0.8 }
-          })
-        });
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.play();
-      } catch (err) {
-        appendMessage('lia', '❗ 無法取得語音，請檢查 Voice ID 或網路連線。');
-        console.error(err);
-      }
+    async function sendToChatGPT(text) {
+      appendMessage('user', text);
+      conversation.push({ role: 'user', content: text });
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: conversation
+        })
+      });
+
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || '⚠️ 無法取得回應';
+      appendMessage('lia', reply);
+      conversation.push({ role: 'assistant', content: reply });
     }
 
-    function sendMessage() {
-      const msg = textInput.value.trim();
-      if (msg) {
-        appendMessage('user', msg);
-        speak(msg);
-        textInput.value = '';
+    sendBtn.addEventListener('click', () => {
+      const text = inputBox.value.trim();
+      if (text) {
+        inputBox.value = '';
+        sendToChatGPT(text);
       }
-    }
+    });
+
+    inputBox.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
+      }
+    });
   </script>
 </body>
 </html>
