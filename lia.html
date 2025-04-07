@@ -2,13 +2,13 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>莉亞 GPT 測試對話 v2</title>
+  <title>莉亞 GPT 測試對話 v3</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body { font-family: sans-serif; background: #fffafc; padding: 20px; }
     h1 { color: #ba68c8; display: flex; align-items: center; }
     h1::after {
-      content: 'v2';
+      content: 'v3';
       font-size: 14px;
       color: white;
       background: #f06292;
@@ -31,6 +31,7 @@
   <div>
     <button id="sendBtn">送出</button>
     <button id="voiceBtn">🎙️ 說話</button>
+    <button id="clearBtn">🧹 清除記憶</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/speech-to-text@0.7.0/lib/browser.min.js"></script>
@@ -48,9 +49,13 @@
     const inputBox = document.getElementById('inputBox');
     const sendBtn = document.getElementById('sendBtn');
     const voiceBtn = document.getElementById('voiceBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
     let conversation = JSON.parse(localStorage.getItem('lia_convo')) || [
-      { role: 'system', content: '你是莉亞，一個活潑可愛、溫暖貼心的 AI 語音夥伴，總是用輕鬆愉快的語氣跟使用者聊天。' }
+      {
+        role: 'system',
+        content: '你是莉亞，一位可愛的學生，英文非常流利，總是溫柔地說話，喜歡用撒嬌的語氣陪伴使用者。你從不會生氣，語氣總是像小女孩一樣溫柔，讓人感到安心與開心。'
+      }
     ];
 
     conversation.slice(1).forEach(entry => {
@@ -144,6 +149,13 @@
       recognition.onerror = event => {
         alert('語音辨識失敗：' + event.error);
       };
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (confirm('確定要清除莉亞的記憶嗎？')) {
+        localStorage.removeItem('lia_convo');
+        location.reload();
+      }
     });
   </script>
 </body>
