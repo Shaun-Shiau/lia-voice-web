@@ -8,7 +8,7 @@
     body { font-family: sans-serif; background: #fffafc; padding: 20px; }
     h1 { color: #ba68c8; display: flex; align-items: center; }
     h1::after {
-      content: 'v1';
+      content: 'v2';
       font-size: 14px;
       color: white;
       background: #f06292;
@@ -20,18 +20,20 @@
     .user { text-align: right; color: #6a1b9a; margin: 5px 0; }
     .lia { text-align: left; color: #4e342e; margin: 5px 0; }
     #inputBox { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; }
-    button { padding: 10px 20px; background: #ab47bc; color: white; border: none; border-radius: 8px; }
+    button { padding: 10px 20px; background: #ab47bc; color: white; border: none; border-radius: 8px; margin-right: 5px; }
     button:hover { background: #8e24aa; }
   </style>
 </head>
 <body>
   <h1>莉亞 GPT 測試對話</h1>
-  <div id="chat">
-    <p class="lia">🧚 莉亞：嗨嗨～我是莉亞，有什麼想聊的嗎？</p>
-  </div>
+  <div id="chat"></div>
   <input type="text" id="inputBox" placeholder="輸入你的訊息..." autofocus />
-  <button id="sendBtn">送出</button>
+  <div>
+    <button id="sendBtn">送出</button>
+    <button id="voiceBtn">🎙️ 說話</button>
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/speech-to-text@0.7.0/lib/browser.min.js"></script>
   <script>
     const openAiKey = [
       'sk-proj-zJUxFEY68dzT5K7W5J4CrriCm5JhNVjBW5lZdKzm_42qPzLD6',
@@ -40,15 +42,20 @@
     ].join('');
 
     const elevenLabsKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af';
-    const elevenLabsVoiceId = 'EXAVITQu4vr4xnSDxMaL'; // Bella（eleven_multilingual_v2）
+    const elevenLabsVoiceId = 'EXAVITQu4vr4xnSDxMaL';
 
     const chatBox = document.getElementById('chat');
     const inputBox = document.getElementById('inputBox');
     const sendBtn = document.getElementById('sendBtn');
+    const voiceBtn = document.getElementById('voiceBtn');
 
-    let conversation = [
+    let conversation = JSON.parse(localStorage.getItem('lia_convo')) || [
       { role: 'system', content: '你是莉亞，一個活潑可愛、溫暖貼心的 AI 語音夥伴，總是用輕鬆愉快的語氣跟使用者聊天。' }
     ];
+
+    conversation.slice(1).forEach(entry => {
+      appendMessage(entry.role === 'user' ? 'user' : 'lia', entry.content);
+    });
 
     function appendMessage(role, text) {
       const p = document.createElement('p');
@@ -80,6 +87,7 @@
     async function sendToChatGPT(text) {
       appendMessage('user', text);
       conversation.push({ role: 'user', content: text });
+      localStorage.setItem('lia_convo', JSON.stringify(conversation));
 
       try {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -100,6 +108,7 @@
         const reply = data.choices?.[0]?.message?.content || '⚠️ 無法取得回應';
         appendMessage('lia', reply);
         conversation.push({ role: 'assistant', content: reply });
+        localStorage.setItem('lia_convo', JSON.stringify(conversation));
         speak(reply);
 
       } catch (err) {
@@ -117,6 +126,24 @@
 
     inputBox.addEventListener('keypress', e => {
       if (e.key === 'Enter') sendBtn.click();
+    });
+
+    voiceBtn.addEventListener('click', () => {
+      const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+      recognition.lang = 'zh-TW';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.start();
+
+      recognition.onresult = event => {
+        const voiceText = event.results[0][0].transcript;
+        inputBox.value = voiceText;
+        sendBtn.click();
+      };
+
+      recognition.onerror = event => {
+        alert('語音辨識失敗：' + event.error);
+      };
     });
   </script>
 </body>
