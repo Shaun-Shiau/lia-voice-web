@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>莉亞 GPT 測試對話 v1</title>
+  <title>莉亞 GPT 測試對話 v2</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body { font-family: sans-serif; background: #fffafc; padding: 20px; }
@@ -33,12 +33,13 @@
   <button id="sendBtn">送出</button>
 
   <script>
-    // API 與聲音資訊（由對話上下文提供）
     const openAiKey = [
       'sk-proj-zJUxFEY68dzT5K7W5J4CrriCm5JhNVjBW5lZdKzm_42qPzLD6',
       '29WkRch-n0MNFI3NU7PLDZvr4T3BlbkFJtkAW2djwbNf5Jy0tnTq0Dd2D',
       'M_-VAn1d4vdOsdDO68mErBj3feXY5ETweHoa-EWdFsLu7C70cA'
     ].join('');
+
+    const elevenLabsKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af';
     const elevenLabsVoiceId = 'EXAVITQu4vr4xnSDxMaL'; // Bella（eleven_multilingual_v2）
 
     const chatBox = document.getElementById('chat');
@@ -52,7 +53,7 @@
     function appendMessage(role, text) {
       const p = document.createElement('p');
       p.className = role;
-      p.innerText = (role === 'user' ? '🧑‍💻 你：' : '🧚 莉亞：') + text;
+      p.innerText = (role === 'user' ? '🧑\u200d💻 你：' : '🧚 莉亞：') + text;
       chatBox.appendChild(p);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -61,7 +62,7 @@
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`, {
         method: 'POST',
         headers: {
-          'xi-api-key': openAiKey,
+          'xi-api-key': elevenLabsKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
