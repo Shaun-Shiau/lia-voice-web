@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>莉亞語音助手</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #fff5f9; }
+    body { font-family: sans-serif; padding: 20px; background: #fff6fa; }
     h1 { color: #ba68c8; }
     #chat { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
     .user { text-align: right; color: #6a1b9a; margin: 5px 0; }
@@ -20,9 +20,9 @@
   <button id="startBtn">開始說話</button>
 
   <script>
-    const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // 你剛申請的新金鑰
-    const elevenKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af'; // <-- 如果還沒放，記得放進來
-    const voiceId = '你的莉亞Voice ID'; // <-- 這裡也要設定喔！
+    const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // << 這裡貼上完整金鑰
+    const elevenKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af'; // << ElevenLabs 的 key（之後你可以補上）
+    const voiceId = 'Bella';
 
     const chatBox = document.getElementById('chat');
     const startBtn = document.getElementById('startBtn');
@@ -64,7 +64,8 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openAiKey}`
+          'Authorization': `Bearer ${openAiKey}`,
+          'OpenAI-Project': 'proj_U5D2Bv16xba5yQVd9U9wd2Uy'
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
@@ -73,17 +74,16 @@
       });
 
       const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content;
 
-      if (!data.choices) {
-        appendMessage('lia', '❗ 無法取得 ChatGPT 回覆，請確認金鑰是否有效或 API 是否連線正常。');
-        console.error('API 錯誤回應:', data);
-        return;
+      if (reply) {
+        conversation.push({ role: 'assistant', content: reply });
+        appendMessage('lia', reply);
+        speak(reply);
+      } else {
+        appendMessage('lia', '❌ ChatGPT 沒有回應');
+        console.error('錯誤回應：', data);
       }
-
-      const reply = data.choices[0].message.content;
-      conversation.push({ role: 'assistant', content: reply });
-      appendMessage('lia', reply);
-      speak(reply);
     }
 
     function startListening() {
