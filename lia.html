@@ -83,7 +83,7 @@
   <button onclick="startListening()">🎙️ 說話</button>
   <button onclick="toggleSettings()">⚙️ 設定</button>
 
-  <div id="translation"></div>
+  <div id="translation"><span>🌍 翻譯：</span><span id="translatedText">（等待對話）</span></div>
 
   <div id="settingsPanel">
     <div class="setting-label">🎨 換裝風格</div>
@@ -114,13 +114,13 @@
     <button onclick="clearMemory()">清除對話記錄</button>
   </div>
 <script>
-  const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // 🔒 API 金鑰（請放你自己的）
-  const voiceKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af'; // 🔒 ElevenLabs 金鑰
-  const voiceId = 'ZqvIIuD5aI9JFejebHiH'; // ✅ 你的 Voice ID
+  const openAiKey = 'sk-proj-zJUxFEY68dzT5K7...'; // 👉 請填上你自己的 OpenAI 金鑰
+  const voiceKey = 'sk_2668c630e25df367c7b6a4517bd1033369bf4a06372c04af';
+  const voiceId = 'ZqvIIuD5aI9JFejebHiH'; // ✅ 你的 Bella Voice ID
 
   const chatBox = document.getElementById('chat');
   const inputBox = document.getElementById('inputBox');
-  const translation = document.getElementById('translation');
+  const translation = document.getElementById('translatedText');
   const themeSelector = document.getElementById('themeSelector');
   const personaSelector = document.getElementById('personaSelector');
   const settingsPanel = document.getElementById('settingsPanel');
@@ -155,48 +155,65 @@
     appendMessage('user', text);
     conversation.push({ role: 'user', content: text });
     inputBox.value = '';
-    translation.innerText = '⏳ 翻譯中...';
+    translation.innerText = '翻譯中...';
 
     const personaText = personas[currentPersona];
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openAiKey
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: 'system', content: personaText }, ...conversation]
-      })
-    });
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || '莉亞不知道怎麼回答主人了…🥺';
-    appendMessage('lia', reply);
-    conversation.push({ role: 'assistant', content: reply });
-    localStorage.setItem('lia_chat', JSON.stringify(conversation));
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + openAiKey
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: 'system', content: personaText }, ...conversation]
+        })
+      });
 
-    speak(reply);
-    translate(reply);
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content;
+
+      if (!reply) {
+        appendMessage('lia', '莉亞無法取得回應…可能是金鑰失效或 API 錯誤 😢');
+        return;
+      }
+
+      appendMessage('lia', reply);
+      conversation.push({ role: 'assistant', content: reply });
+      localStorage.setItem('lia_chat', JSON.stringify(conversation));
+
+      speak(reply);
+      translate(reply);
+
+    } catch (err) {
+      appendMessage('lia', '莉亞出現錯誤了…可能連不到伺服器 😢');
+      console.error(err);
+    }
   }
 
   async function speak(text) {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': voiceKey
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.3, similarity_boost: 0.8 }
-      })
-    });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': voiceKey
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: 0.3, similarity_boost: 0.8 }
+        })
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+    } catch (err) {
+      console.error("語音播放失敗", err);
+    }
   }
 
   async function translate(text) {
@@ -205,20 +222,25 @@
       ? `請將以下句子翻譯成英文：${text}`
       : `請將以下句子翻譯成繁體中文：${text}`;
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openAiKey
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const translated = data.choices?.[0]?.message?.content || '';
-    translation.innerText = '🌍 翻譯：' + translated;
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + openAiKey
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const translated = data.choices?.[0]?.message?.content || '（翻譯失敗）';
+      translation.innerText = translated;
+    } catch (err) {
+      translation.innerText = '（翻譯失敗）';
+      console.error(err);
+    }
   }
 
   function startListening() {
@@ -236,7 +258,7 @@
       localStorage.removeItem('lia_chat');
       conversation = [];
       chatBox.innerHTML = '';
-      appendMessage('lia', '記憶已清除喔～主人可以重新開始對話了 💖');
+      appendMessage('lia', '記憶已清除～主人可以重新開始對話了 💖');
     }
   }
 
@@ -253,6 +275,7 @@
   personaSelector.onchange = function () {
     currentPersona = this.value;
     localStorage.setItem('lia_persona', currentPersona);
+    appendMessage('lia', '莉亞變身囉～現在是新的我，請多多指教唷主人 💖');
   };
 
   // 初始化對話紀錄
