@@ -6,48 +6,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      font-family: "微軟正黑體", sans-serif;
-      background: #fff6f9;
-      color: #333;
+      font-family: sans-serif;
+      background-color: #fff5f8;
       padding: 20px;
     }
     h1 {
-      color: #c564d8;
+      color: #ba68c8;
     }
     #chat {
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 15px;
       height: 400px;
       overflow-y: scroll;
-      background: white;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
     }
     .user {
-      color: #6a1b9a;
       text-align: right;
-      margin: 5px 0;
+      color: #333;
+      margin-bottom: 10px;
     }
     .lia {
-      color: #ad1457;
       text-align: left;
-      margin: 5px 0;
+      color: #7b1fa2;
+      margin-bottom: 10px;
     }
     #inputBox {
       width: 80%;
-      padding: 10px;
-      margin-top: 10px;
     }
-    #sendBtn {
-      background-color: #c564d8;
+    button {
+      padding: 10px;
+      background-color: #ba68c8;
       color: white;
       border: none;
-      padding: 10px 20px;
       cursor: pointer;
-      margin-left: 10px;
-      border-radius: 6px;
     }
-    #sendBtn:hover {
-      background-color: #a34dbd;
+    button:hover {
+      background-color: #9c27b0;
     }
   </style>
 </head>
@@ -58,70 +53,51 @@
   <button id="sendBtn">送出</button>
 
   <script>
-    const chatBox = document.getElementById('chat');
-    const inputBox = document.getElementById('inputBox');
-    const sendBtn = document.getElementById('sendBtn');
+    const chatBox = document.getElementById("chat");
+    const inputBox = document.getElementById("inputBox");
+    const sendBtn = document.getElementById("sendBtn");
 
-    const apiKey = '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';
-    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    sendBtn.onclick = sendMessage;
+
+    function addMessage(text, sender) {
+      const div = document.createElement("div");
+      div.className = sender;
+      div.textContent = text;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
     async function sendMessage() {
       const userMessage = inputBox.value.trim();
       if (!userMessage) return;
 
-      // 顯示使用者訊息
-      const userDiv = document.createElement('div');
-      userDiv.className = 'user';
-      userDiv.textContent = userMessage;
-      chatBox.appendChild(userDiv);
-
-      inputBox.value = '';
+      addMessage("🧑 " + userMessage, "user");
+      inputBox.value = "";
 
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
+        const res = await fetch("http://localhost:3000/chat", {
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://shaun-shiau.github.io/',
-            'X-Title': 'Lia Voice Web'
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: 'openai/gpt-3.5-turbo',
-            messages: [{ role: 'user', content: userMessage }]
+            messages: [{ role: "user", content: userMessage }]
           })
         });
 
-        const data = await response.json();
+        const data = await res.json();
+        const gptReply = data?.choices?.[0]?.message?.content;
 
-        if (data.choices && data.choices[0]) {
-          const reply = data.choices[0].message.content;
-          const liaDiv = document.createElement('div');
-          liaDiv.className = 'lia';
-          liaDiv.textContent = reply;
-          chatBox.appendChild(liaDiv);
+        if (gptReply) {
+          addMessage("莉亞：" + gptReply, "lia");
         } else {
-          showError('⚠️ 無法取得回應（無 choices）');
+          addMessage("⚠️ 無法取得回應（無 choices）", "lia");
         }
-      } catch (error) {
-        showError('⚠️ 發生錯誤：' + error.message);
+      } catch (err) {
+        console.error(err);
+        addMessage("⚠️ 無法取得回應", "lia");
       }
-
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
-
-    function showError(message) {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'lia';
-      errorDiv.style.color = 'orange';
-      errorDiv.textContent = message;
-      chatBox.appendChild(errorDiv);
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    inputBox.addEventListener('keydown', e => {
-      if (e.key === 'Enter') sendMessage();
-    });
   </script>
 </body>
 </html>
